@@ -37,9 +37,13 @@ jobs:
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
     
+    - name: Install project
+      run: |
+        pip install -e .
+    
     - name: Run tests with pytest
       run: |
-        PYTHONPATH=src pytest
+        pytest
     
     - name: Run linting with flake8
       run: |
