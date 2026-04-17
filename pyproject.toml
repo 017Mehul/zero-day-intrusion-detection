@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "sa-zd-nids"
+version = "1.0.0"
+description = "Self-Adaptive Zero-Day Aware Network Intrusion Detection System"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "xgboost",
+    "lightgbm",
+    "torch",
+    "river",
+    "psutil",
+    "pyyaml",
+    "joblib",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+explain = ["shap"]
+dev = ["pytest", "shap"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "requires_river: marks tests that need the river package installed",
+]

@@ -1,0 +1,17 @@
+# Development and testing dependencies
+
+# Testing
+pytest>=6.2.0
+pytest-cov>=3.0.0
+
+# Code formatting and linting
+black>=21.0.0
+flake8>=4.0.0
+
+# Optional development tools
+jupyter>=1.0.0
+notebook>=6.4.0
+tqdm>=4.62.0
+
+# Documentation
+sphinx>=4.0.0
