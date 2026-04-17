@@ -41,6 +41,10 @@ jobs:
       run: |
         pip install -e .
     
+    - name: Verify package import
+      run: |
+        python -c "import sa_zd_nids"
+    
     - name: Run tests with pytest
       run: |
         pytest
