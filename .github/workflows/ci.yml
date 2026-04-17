@@ -50,7 +50,7 @@ jobs:
     
     - name: Run tests with pytest
       run: |
-        pytest
+        pytest -vv
     
     - name: Run linting with flake8
       run: |
