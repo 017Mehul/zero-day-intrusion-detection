@@ -39,7 +39,7 @@ jobs:
     
     - name: Run tests with pytest
       run: |
-        pytest
+        PYTHONPATH=src pytest
     
     - name: Run linting with flake8
       run: |
