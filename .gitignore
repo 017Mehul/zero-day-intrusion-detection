@@ -46,6 +46,7 @@ coverage.xml
 .pytest_cache/
 
 # Jupyter Notebook
+notebooks/
 .ipynb_checkpoints
 
 # IPython
@@ -175,6 +176,7 @@ docs/_build/
 docs/build/
 
 # Paper artifacts
+paper/
 paper/draft/
 paper/reviews/
 
