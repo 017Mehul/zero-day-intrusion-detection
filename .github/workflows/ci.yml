@@ -39,6 +39,7 @@ jobs:
     
     - name: Install project
       run: |
+        pip uninstall -y sa-zd-nids || true
         pip install -e .
     
     - name: Verify package import
@@ -46,6 +47,7 @@ jobs:
         python -c "import sa_zd_nids"
         python -c "from sa_zd_nids.models.autoencoder import AutoencoderNet"
         python -c "from sa_zd_nids.models.classifier import KnownAttackClassifier"
+        python -c "import sa_zd_nids; print('Package contents:', dir(sa_zd_nids))"
         tree src
     
     - name: Run tests with pytest
