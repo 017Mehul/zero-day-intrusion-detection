@@ -44,6 +44,9 @@ jobs:
     - name: Verify package import
       run: |
         python -c "import sa_zd_nids"
+        python -c "from sa_zd_nids.models.autoencoder import AutoencoderNet"
+        python -c "from sa_zd_nids.models.classifier import KnownAttackClassifier"
+        tree src
     
     - name: Run tests with pytest
       run: |
