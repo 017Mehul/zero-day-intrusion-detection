@@ -1,4 +1,5 @@
 name: CI
+# Zero-day Intrusion Detection System CI Pipeline
 
 on:
   push:
