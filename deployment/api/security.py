@@ -1,6 +1,6 @@
 """Optional production API security controls."""
 from __future__ import annotations
-import hashlib
+import hmac
 import os
 import time
 from collections import defaultdict, deque
@@ -23,7 +23,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         if not self.api_key or not request.url.path.startswith("/api/"):
             return True
         supplied = request.headers.get("X-API-Key", "")
-        return bool(supplied) and hashlib.compare_digest(supplied, self.api_key)
+        return bool(supplied) and hmac.compare_digest(supplied, self.api_key)
 
     def _rate_limited(self, client_id: str) -> bool:
         if self.limit <= 0:
