@@ -163,15 +163,45 @@ The repository includes classification and zero-day metrics:
 
 **Important:** benchmark values such as accuracy or zero-day detection rate depend on the exact dataset, preprocessing, split and model configuration. The README does not claim a universal 94%/87% result; reproduce `train.py` and `stream.py` to obtain results for your run.
 
-## Security / production notes
+## Real-world validation and deployment
 
-The API now restricts CORS to configured origins by default and supports environment-based model/config paths. For internet-facing deployment, add authentication, TLS termination, rate limiting and durable monitoring at the infrastructure layer.
+### Live traffic capture
+
+Optional packet capture provides a real ingestion starting point:
+
+```bash
+pip install -r requirements-capture.txt
+python scripts/capture_packets.py --interface "Wi-Fi" --seconds 60 --output data/live.pcap
+```
+
+The capture intentionally stops at PCAP. A flow extractor such as CICFlowMeter or Zeek must convert packets into the exact feature schema used by the trained model; raw packets cannot safely be mapped to CICIDS2017 features by guesswork.
+
+### Cross-dataset validation
+
+Validate a trained model on an independent labeled dataset with the same feature schema:
+
+```bash
+python scripts/validate_external_dataset.py --data data/external.csv
+```
+
+The script reuses the fitted training preprocessor and reports classification and zero-day metrics without fitting on the external dataset. Different feature schemas require an explicit adapter rather than silent column guessing.
+
+### Production API hardening
+
+The API supports optional `X-API-Key` authentication and a per-process rate limit:
+
+```bash
+export SA_ZD_NIDS_API_KEY="change-me"
+export SA_ZD_NIDS_RATE_LIMIT_PER_MINUTE=120
+```
+
+CORS remains configurable with `SA_ZD_NIDS_ALLOWED_ORIGINS`. For internet-facing deployments, terminate TLS at a reverse proxy/load balancer and use a durable distributed rate limiter, authentication/authorization service, secret manager, logs/metrics backend and alerting. The built-in controls are a safe baseline, not a replacement for a production gateway.
 
 The system's automatic serving adaptation is deliberately conservative and uses high-confidence pseudo-labels. For authoritative labeled model updates, use `adapt.py` with a validated recent labeled dataset.
 
 ## Project status
 
-This is a **working research/portfolio prototype**, not a claim of a production SOC/NIDS appliance. Live packet capture and cross-dataset benchmarking remain environment- and dataset-dependent work.
+This is a **working research/portfolio prototype** with explicit live-capture, cross-dataset-validation and API-hardening paths. It is not a claim of a production SOC/NIDS appliance until those environment-specific integrations and infrastructure controls are deployed.
 
 ## Citation
 
