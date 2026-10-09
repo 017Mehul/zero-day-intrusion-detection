@@ -16,7 +16,8 @@ import torch
 from sa_zd_nids.drift.detector import DriftDetector
 from sa_zd_nids.models.autoencoder import AutoencoderNet, ZeroDayAutoencoder
 from sa_zd_nids.models.classifier import KnownAttackClassifier
-from sa_zd_nids.utils.io import load_config, save_metadata_atomic, save_model_atomic
+from sa_zd_nids.config import load_config
+from sa_zd_nids.utils.io import save_metadata_atomic, save_model_atomic
 
 
 class ModelManager:
