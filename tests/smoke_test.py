@@ -53,7 +53,7 @@ def test_minimal_pipeline():
         train_normal = prepared.X_train[:10]
     if len(val_normal) == 0:
         val_normal = prepared.X_val[:5]
-    ae_art = ae.fit(train_normal, val_normal)
+    ae.fit(train_normal, val_normal)
 
     engine = StreamingEngine(cfg, clf, ae)
     artifacts = engine.run(prepared.X_test, prepared.y_test, prepared.timestamps_test, benign_label=benign_label, known_labels=clf_art.labels)
