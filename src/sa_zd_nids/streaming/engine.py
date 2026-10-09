@@ -76,7 +76,7 @@ class StreamingEngine:
             batch_end = min(batch_start + batch_size, len(X))
             Xb = X[batch_start:batch_end]
             yb = y[batch_start:batch_end]
-            tsb = timestamps.iloc[batch_start:batch_end] if hasattr(timestamps, "iloc") else timestamps[batch_start:batch_end]
+            tsb = (\n                timestamps.iloc[batch_start:batch_end]\n                if hasattr(timestamps, "iloc")\n                else timestamps[batch_start:batch_end]\n            )
 
             t0 = perf_counter()
             pred_cls, conf = self.classifier.predict(Xb)
