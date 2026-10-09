@@ -9,6 +9,8 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from deployment.api.security import SecurityMiddleware
+
 from deployment.api.dependencies import get_model_manager
 from deployment.api.endpoints import drift, health, predict
 
@@ -31,6 +33,7 @@ allowed_origins = [
     ).split(",")
     if origin.strip()
 ]
+app.add_middleware(SecurityMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
