@@ -87,4 +87,3 @@ def generate_experiment_plots(batch_csv_by_experiment: dict[str, str], out_dir: 
     plot_zero_day_rate_over_time(batch_csv_by_experiment=batch_csv_by_experiment, output_path=paths["zero_day_rate_over_time"])
     plot_latency_trend(batch_csv_by_experiment=batch_csv_by_experiment, output_path=paths["latency_trend"])
     return paths
-
