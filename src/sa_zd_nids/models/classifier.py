@@ -137,6 +137,10 @@ class KnownAttackClassifier:
             y_parts.append(np.asarray(y_past).astype(str))
         X_all = np.vstack(X_parts)
         y_all = np.concatenate(y_parts)
+        if np.unique(y_all).size < 2:
+            # A one-class pseudo-label window cannot safely retrain a multiclass classifier.
+            self._last_adapt_accepted = False
+            return False
         # Keep the original class vocabulary. Unknown labels are allowed to be added only after explicit evidence.
         candidate_encoder = LabelEncoder().fit(np.concatenate([self.labels, y_all]))
         candidate = self._make_model()
