@@ -1,148 +1,187 @@
-﻿# SA-ZD-NIDS
+# SA-ZD-NIDS
 
-A network intrusion detection system that learns to spot both known and unknown cyber attacks.
+Self-Adaptive Zero-Day Aware Network Intrusion Detection System for tabular network-flow data.
 
-## What it does
+## What is implemented
 
-I built this to solve three common problems with traditional intrusion detection:
-- **Zero-day attacks** - New attacks that signature-based systems miss
-- **Concept drift** - Attack patterns that change over time
-- **Imbalanced data** - Very few attack samples compared to normal traffic
+SA-ZD-NIDS combines:
 
-## How it works
+- **Known-attack classification** with XGBoost, LightGBM or Random Forest.
+- **Zero-day anomaly detection** with a PyTorch autoencoder trained on benign traffic.
+- **Concept-drift detection** with ADWIN and a composite streaming signal.
+- **Drift-triggered adaptation** in the offline streaming engine, with validation-gated classifier updates and atomic artifact persistence.
+- **Serving-time adaptation** using conservative high-confidence pseudo-labels plus anomaly-threshold recalibration.
+- **FastAPI inference API** for single, batch and streaming predictions.
+- **Streamlit dashboard** for demonstration and monitoring.
+- **Optuna tuning, evaluation metrics, reporting and research artifacts**.
+- **CI** covering package installation, imports, the full test suite and linting.
 
-The system uses a hybrid approach:
-- **XGBoost** to detect known attack patterns
-- **Autoencoder** to spot unusual traffic (zero-day attacks)
-- **Drift detection** to automatically adapt when patterns change
-- **Streaming engine** to process data in batches
+## Architecture
 
-## Key features
+```text
+Network-flow data
+      |
+      v
+Leakage-safe preprocessing
+(imputation -> optional MI selection -> scaling)
+      |
+      +--------------------+
+      |                    |
+      v                    v
+Known-attack model     Autoencoder
+XGBoost/RF/LGBM        benign-only training
+      |                    |
+      +--------+-----------+
+               v
+      confidence / anomaly decision
+               |
+               v
+       streaming + ADWIN
+               |
+        drift detected?
+          /          \
+        no            yes
+        |              |
+        |       validation-gated
+        |       adaptation/recalibration
+        v              v
+              metrics + model artifacts
+```
 
-- Detects both known and unknown attacks
-- Automatically adapts to new attack patterns
-- Runs on GPU for faster training
-- Shows which features matter most for decisions
-- Includes a demo dashboard
+## Reproducible setup
 
-## Tech I used
-
-- **ML models**: XGBoost, PyTorch, Scikit-learn
-- **Drift detection**: River library
-- **Data tools**: Pandas, NumPy
-- **Visualization**: Matplotlib, Plotly
-- **Optimization**: Optuna for tuning
-- **Demo**: FastAPI + Streamlit
-
-## Getting started
+### 1. Install
 
 ```bash
-# Install what you need
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# macOS/Linux
+source .venv/bin/activate
+
 pip install -r requirements.txt
+pip install -r requirements-dev.txt
+pip install -e .
+```
 
-# Train the models
+### 2. Prepare CICIDS2017
+
+Put the raw CSV files under `data/`, then run:
+
+```bash
+python scripts/prepare_data.py
+```
+
+This creates `data/processed.csv`.
+
+### 3. Train
+
+```bash
 python train.py --config config.yaml
+```
 
-# Run the streaming demo
+Training creates:
+
+- `models/classifier.joblib`
+- `models/autoencoder.pt`
+- `models/preprocessor.joblib`
+- `models/metadata.json`
+
+Model artifacts and datasets are intentionally gitignored.
+
+### 4. Run the streaming evaluation
+
+```bash
 python stream.py --config config.yaml
-
-# Try the experiments
-python run_experiments.py --config config.yaml
 ```
 
-## GUI Dashboard
+Metrics and event logs are written to the configured `logs/` paths.
 
-The system includes an interactive web dashboard for real-time monitoring and analysis:
-
-### Quick Start (Demo Mode)
+### 5. Run the API
 
 ```bash
-# Start the mock API backend
+python -m uvicorn deployment.api.main:app --host 0.0.0.0 --port 8000
+```
+
+Useful endpoints:
+
+- `GET /`
+- `GET /api/v1/health`
+- `GET /api/v1/ready`
+- `GET /api/v1/drift`
+- `POST /api/v1/predict`
+- `POST /api/v1/predict/batch`
+- `POST /api/v1/predict/stream`
+- `GET /api/v1/predict/stats`
+
+The dashboard API URL is configurable with `SA_ZD_NIDS_API_URL`.
+
+### Demo mode
+
+The repository also contains `mock_api.py` for UI-only demonstrations without trained model artifacts:
+
+```bash
 python -m uvicorn mock_api:app --host 0.0.0.0 --port 8000
-
-# In a new terminal, start the GUI frontend
 python -m streamlit run deployment/frontend/app.py
-
-# Access the dashboard at http://localhost:8501
 ```
 
-### Full Setup (With Trained Models)
+## Docker
+
+After generating model artifacts locally:
 
 ```bash
-# First train the models
-python train.py --config config.yaml
-
-# Start the production API backend
-python deployment/api/main.py
-
-# In a new terminal, start the GUI frontend
-python -m streamlit run deployment/frontend/app.py
-
-# Access the dashboard at http://localhost:8501
+docker compose up --build
 ```
 
-### GUI Features
+The API is exposed on port 8000 and the dashboard on port 8501. The `models/` directory is mounted read-only into the API container.
 
-- **Demo Interface** - Interactive network traffic analysis with manual input
-- **System Monitoring** - Real-time performance metrics and health checks
-- **Drift Analysis** - Concept drift visualization and statistics
-- **Batch Prediction** - Upload CSV files for bulk analysis
+## Testing
 
-## Configuration
+Run:
 
-The main settings are in `config.yaml`:
-- Which classifier to use and its parameters
-- Autoencoder architecture
-- When to trigger drift detection
-- Batch size for streaming
-
-## How well it works
-
-On my test data:
-- About 94% accuracy overall
-- Catches ~87% of zero-day attacks
-- False positive rate around 2.3%
-- Predictions take less than 1ms
-
-## Project structure
-
-```
-sa-zd-nids/
-|-- src/sa_zd_nids/          # Main code
-|-- deployment/              # API and dashboard
-|-- configs/                 # Configuration files
-|-- data/                    # Training data (gitignored)
-|-- notebooks/               # Jupyter experiments
-|-- tests/                   # Unit tests
-|-- scripts/                 # Helper scripts
-|-- train.py                 # Train models
-|-- stream.py                # Run streaming demo
-|-- run_experiments.py       # Run all experiments
-|-- README.md                # This file
-|-- UPGRADE.md               # Advanced features
-|-- INTERVIEW_PREP.md        # Interview questions
-|-- PROJECT_STATUS.md        # Current status
+```bash
+python -m pytest -vv
+python -m flake8 --max-line-length=200 --extend-ignore=E203,W503 src tests
 ```
 
-## More docs
+GitHub Actions runs the same install/import/test/lint pipeline on every push to `main` and pull request.
 
-- **UPGRADE.md** - Advanced features and deployment setup
-- **INTERVIEW_PREP.md** - Questions I get asked in interviews
-- **PROJECT_STATUS.md** - What's done and what's next
+## Evaluation
+
+The repository includes classification and zero-day metrics:
+
+- accuracy
+- macro precision
+- macro recall
+- macro F1
+- unseen-attack detection rate
+- benign false-positive rate
+- drift count and drift latency
+- adaptation time
+- inference latency
+- CPU and memory usage
+
+**Important:** benchmark values such as accuracy or zero-day detection rate depend on the exact dataset, preprocessing, split and model configuration. The README does not claim a universal 94%/87% result; reproduce `train.py` and `stream.py` to obtain results for your run.
+
+## Security / production notes
+
+The API now restricts CORS to configured origins by default and supports environment-based model/config paths. For internet-facing deployment, add authentication, TLS termination, rate limiting and durable monitoring at the infrastructure layer.
+
+The system's automatic serving adaptation is deliberately conservative and uses high-confidence pseudo-labels. For authoritative labeled model updates, use `adapt.py` with a validated recent labeled dataset.
+
+## Project status
+
+This is a **working research/portfolio prototype**, not a claim of a production SOC/NIDS appliance. Live packet capture and cross-dataset benchmarking remain environment- and dataset-dependent work.
 
 ## Citation
-
-If you use this in your work:
 
 ```bibtex
 @software{sa_zd_nids,
   title={SA-ZD-NIDS: Self-Adaptive Zero-Day Aware Network Intrusion Detection System},
   author={Mehul Gupta},
-  year={2024},
-  url={https://github.com/yourusername/sa-zd-nids}
+  year={2026},
+  url={https://github.com/017Mehul/zero-day-intrusion-detection}
 }
 ```
 
----
-
-**Built by Mehul Gupta**
+Built by Mehul Gupta.
