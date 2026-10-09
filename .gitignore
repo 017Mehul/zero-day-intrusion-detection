@@ -29,15 +29,15 @@ MANIFEST
 
 # Installer logs
 pip-log.txt
-pip-delete-this-directory.txt
+pip-delete-this-directory.py
 
-# Unit test / coverage reports
+# Tests / coverage
 htmlcov/
 .tox/
 .nox/
 .coverage
 .coverage.*
-.cache
+.cache/
 nosetests.xml
 coverage.xml
 *.cover
@@ -45,58 +45,41 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
-# Jupyter Notebook
+# Jupyter / IPython
 notebooks/
 .ipynb_checkpoints
-
-# IPython
 profile_default/
 ipython_config.py
 
-# pyenv
+# Python environments
 .python-version
-
-# pipenv
 Pipfile.lock
-
-# PEP 582
 __pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
+.venv/
 venv/
+env/
 ENV/
 env.bak/
 venv.bak/
 
-# Spyder project settings
-.spyderproject
-.spyproject
+# Environment variables / local secrets
+.env
+.env.*
+!.env.example
+config_local.yaml
+secrets.yaml
+.secrets
+api_keys.txt
+credentials.json
+*.secret
+*.secrets
+*.token
+*.tokens
+*.credentials
+*.pem
+*.key
 
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# Machine Learning Models and Data
+# ML models / generated data
 *.pkl
 *.pickle
 *.pt
@@ -106,8 +89,6 @@ dmypy.json
 *.joblib
 *.model
 *.bin
-
-# Data directories
 data/
 datasets/
 models/
@@ -116,12 +97,6 @@ logs/
 results/
 checkpoints/
 experiments/
-
-# Configuration files with secrets
-config_local.yaml
-secrets.yaml
-.env.local
-.env.production
 
 # IDE
 .vscode/
@@ -139,56 +114,43 @@ secrets.yaml
 ehthumbs.db
 Thumbs.db
 
-# Temporary files
+# Temporary / logs
 *.tmp
 *.temp
 *.log
 *.out
 *.err
-
-# Optuna studies
 optuna_studies/
 study.db
 
 # Streamlit
 .streamlit/
 
-# Docker
+# Docker local overrides
 docker-compose.override.yml
 
-# Backup files
+# Backups / archives
 *.bak
 *.backup
 *.old
-
-# Large files
 *.zip
 *.tar.gz
 *.rar
 *.7z
 
-# Performance profiling
-*.prof
-*.profile
-
-# Documentation build
+# Documentation builds
+site/
 docs/_build/
 docs/build/
 
-# Paper artifacts
-paper/
+# Paper drafts / private review artifacts
 paper/draft/
 paper/reviews/
 
-# Evaluation results
+# Generated evaluation artifacts
 evaluation/experiments/*/predictions.csv
 evaluation/experiments/*/events.jsonl
 evaluation/experiments/*/metrics.json
 
-# Model metadata (may contain sensitive info)
+# Local generated metadata that may contain environment details
 models/metadata_*.json
-
-# API keys and secrets
-.secrets
-api_keys.txt
-credentials.json
