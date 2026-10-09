@@ -1,0 +1,21 @@
+services:
+  api:
+    build: .
+    command: python -m uvicorn deployment.api.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      SA_ZD_NIDS_ALLOWED_ORIGINS: http://localhost:8501,http://127.0.0.1:8501
+    volumes:
+      - ./models:/app/models:ro
+      - ./config.yaml:/app/config.yaml:ro
+
+  dashboard:
+    build: .
+    command: python -m streamlit run deployment/frontend/app.py --server.address 0.0.0.0 --server.port 8501
+    ports:
+      - "8501:8501"
+    environment:
+      SA_ZD_NIDS_API_URL: http://api:8000
+    depends_on:
+      - api
