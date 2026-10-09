@@ -123,4 +123,3 @@ def _fmt(value: Any) -> str:
         return f"{float(value):.6f}"
     except Exception:
         return str(value)
-
