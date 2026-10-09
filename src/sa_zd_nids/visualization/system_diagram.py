@@ -43,4 +43,3 @@ def generate_system_diagram_files(out_dir: str | Path = "evaluation/diagrams") -
         encoding="utf-8",
     )
     return {"mermaid": str(mmd), "markdown": str(md)}
-
