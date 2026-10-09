@@ -1,38 +1,37 @@
 # SA-ZD-NIDS Interview Preparation
 
-## 15-Second Explanation
+## 15-second explanation
 
-"SA-ZD-NIDS is a hybrid network intrusion detection system that combines XGBoost for known attacks with autoencoders for zero-day threats, using drift detection to automatically adapt to new attack patterns."
+"SA-ZD-NIDS is a hybrid network intrusion detection system that combines a supervised classifier for known attacks with a benign-trained autoencoder for anomalous or zero-day traffic, while ADWIN monitors streaming drift and triggers conservative adaptation."
 
-## Key Interview Questions
+## How does it detect zero-day attacks?
 
-### Q1: How does it detect zero-day attacks?
-**Answer:** "Autoencoders trained on normal traffic patterns flag anomalies when reconstruction error is high. Combined with classifier confidence thresholds, this detects unknown attacks."
+The classifier first predicts a known class and confidence score. If confidence is below the configured threshold, the autoencoder evaluates reconstruction error. Samples above the learned anomaly threshold are emitted as ZERO_DAY.
 
-### Q2: Why XGBoost?
-**Answer:** "Excellent performance on tabular data, handles class imbalance, provides feature importance, and supports GPU acceleration for fast inference."
+## Why use XGBoost?
 
-### Q3: How do you handle concept drift?
-**Answer:** "Multiple drift detection algorithms (ADWIN, DDM, EDDM) trigger automatic model retraining with recent data when performance degrades."
+Network-flow datasets are primarily tabular. Gradient-boosted trees work well on nonlinear feature interactions, support class weighting and provide strong inference performance. The implementation also supports Random Forest and LightGBM.
 
-### Q4: What makes it production-ready?
-**Answer:** "FastAPI backend, Streamlit dashboard, hyperparameter optimization, ensemble methods, and comprehensive logging for monitoring."
+## How is concept drift handled?
 
-### Q5: How do you evaluate performance?
-**Answer:** "Multiple metrics: F1-macro for imbalance, zero-day detection rate, false positive rate, latency, and drift detection accuracy."
+The streaming engine builds a drift signal from batch accuracy, low-confidence rate and feature shift, then feeds it to ADWIN. When drift is detected and enough recent data exists, the classifier performs validation-gated adaptation using a recent window plus replay data.
 
-## Resume Bullet Points
+## Is serving adaptation safe?
 
-### Technical Focus
-**Developed SA-ZD-NIDS, a network intrusion detection system achieving 94% accuracy and 87% zero-day detection through hybrid XGBoost-autoencoder architecture with adaptive drift handling**
+It is deliberately conservative. The API only considers high-confidence, non-zero-day predictions as pseudo-labels. A one-class pseudo-label window is rejected for classifier retraining. Benign pseudo-labels may still be used to recalibrate the autoencoder threshold.
 
-### MLOps Focus
-**Built ML pipeline with FastAPI microservices, Streamlit monitoring, Optuna optimization, and ensemble methods, reducing false positives by 40% while maintaining sub-millisecond latency**
+For authoritative model updates with labeled data, adapt.py should be used instead.
 
-## Performance Metrics
+## How is the system evaluated?
 
-- **Accuracy**: 94%
-- **Zero-Day Detection**: 87%
-- **False Positive Rate**: 2.3%
-- **Inference Latency**: <1ms
-- **Model Adaptation**: <30 seconds
+The project reports accuracy, macro precision/recall/F1, zero-day detection rate, benign false-positive rate, drift count/latency, adaptation time, latency, CPU and memory usage.
+
+## What is production-ready?
+
+The repository now has a reproducible API/dashboard/container foundation and CI verification. A production SOC deployment still requires infrastructure-level authentication, TLS, rate limiting, monitoring, alert routing and a real packet-to-flow feature extraction layer.
+
+## Resume-safe description
+
+**Built SA-ZD-NIDS, a hybrid network intrusion detection research system combining supervised attack classification, benign-trained autoencoder anomaly detection, ADWIN concept-drift monitoring, streaming adaptation, FastAPI serving and a Streamlit monitoring dashboard.**
+
+Do not quote fixed benchmark percentages unless they are backed by the exact experiment artifacts you can reproduce.
