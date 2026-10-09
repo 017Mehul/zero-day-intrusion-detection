@@ -1,61 +1,107 @@
 # SA-ZD-NIDS
 
-Self-Adaptive Zero-Day Aware Network Intrusion Detection System for tabular network-flow data.
+**Self-Adaptive Zero-Day Aware Network Intrusion Detection System (SA-ZD-NIDS)** for tabular network-flow data.
 
-## What is implemented
+SA-ZD-NIDS is a research and portfolio-oriented NIDS that combines supervised attack classification, benign-only anomaly detection, concept-drift detection, conservative online adaptation, and deployable inference APIs.
 
-SA-ZD-NIDS combines:
+> **Status:** Working research/portfolio prototype. The repository contains the implementation and validation paths needed for experimentation and deployment, while environment-specific live-traffic and production-infrastructure validation must be performed in the target environment.
 
-- **Known-attack classification** with XGBoost, LightGBM or Random Forest.
-- **Zero-day anomaly detection** with a PyTorch autoencoder trained on benign traffic.
-- **Concept-drift detection** with ADWIN and a composite streaming signal.
-- **Drift-triggered adaptation** in the offline streaming engine, with validation-gated classifier updates and atomic artifact persistence.
-- **Serving-time adaptation** using conservative high-confidence pseudo-labels plus anomaly-threshold recalibration.
-- **FastAPI inference API** for single, batch and streaming predictions.
+## Key capabilities
+
+- **Known-attack classification** using XGBoost, LightGBM, or Random Forest.
+- **Zero-day / unknown-attack detection** using a PyTorch autoencoder trained on benign traffic.
+- **Concept-drift detection** using ADWIN and a composite streaming signal.
+- **Drift-triggered adaptation** with validation-gated classifier updates and atomic artifact persistence.
+- **Serving-time adaptation** using conservative high-confidence pseudo-labels and anomaly-threshold recalibration.
+- **Leakage-safe preprocessing** with chronological splitting and reuse of the fitted inference pipeline.
+- **FastAPI inference service** for single, batch, and streaming predictions.
 - **Streamlit dashboard** for demonstration and monitoring.
-- **Optuna tuning, evaluation metrics, reporting and research artifacts**.
-- **CI** covering package installation, imports, the full test suite and linting.
+- **Optuna-based tuning**, evaluation metrics, reporting, and research artifacts.
+- **Docker deployment** for the API and dashboard.
+- **API hardening** with optional API-key authentication, rate limiting, configurable CORS, and security headers.
+- **Live-traffic capture path** through optional PCAP capture.
+- **Cross-dataset validation** against independent labeled datasets with compatible feature schemas.
+- **CI** covering installation, imports, tests, and linting.
 
 ## Architecture
 
 ```text
 Network-flow data
-      |
-      v
+       |
+       v
 Leakage-safe preprocessing
 (imputation -> optional MI selection -> scaling)
-      |
-      +--------------------+
-      |                    |
-      v                    v
+       |
+       +--------------------+
+       |                    |
+       v                    v
 Known-attack model     Autoencoder
 XGBoost/RF/LGBM        benign-only training
-      |                    |
-      +--------+-----------+
-               v
+       |                    |
+       +--------+-----------+
+                v
       confidence / anomaly decision
-               |
-               v
-       streaming + ADWIN
-               |
-        drift detected?
-          /          \
-        no            yes
-        |              |
-        |       validation-gated
-        |       adaptation/recalibration
-        v              v
+                |
+                v
+        streaming + ADWIN
+                |
+         drift detected?
+           /          \
+         no            yes
+         |              |
+         |       validation-gated
+         |       adaptation/recalibration
+         v              v
               metrics + model artifacts
+```
+
+## Repository structure
+
+```text
+.
+├── config.yaml
+├── train.py
+├── stream.py
+├── adapt.py
+├── mock_api.py
+├── requirements.txt
+├── requirements-dev.txt
+├── requirements-capture.txt
+├── Dockerfile
+├── docker-compose.yml
+├── scripts/
+│   ├── prepare_data.py
+│   ├── capture_packets.py
+│   └── validate_external_dataset.py
+├── src/sa_zd_nids/
+│   ├── data/
+│   ├── models/
+│   ├── drift/
+│   ├── streaming/
+│   ├── evaluation/
+│   ├── optimization/
+│   ├── reporting/
+│   ├── utils/
+│   └── visualization/
+├── deployment/
+│   ├── api/
+│   └── frontend/
+├── tests/
+└── .github/workflows/
 ```
 
 ## Reproducible setup
 
 ### 1. Install
 
+Create a virtual environment and install the project dependencies:
+
 ```bash
 python -m venv .venv
+
 # Windows
-.venv\Scripts\activate
+.venv\\Scripts\\activate
+
 # macOS/Linux
 source .venv/bin/activate
 
@@ -66,13 +112,13 @@ pip install -e .
 
 ### 2. Prepare CICIDS2017
 
-Put the raw CSV files under `data/`, then run:
+Place the raw CICIDS2017 CSV files under `data/`, then run:
 
 ```bash
 python scripts/prepare_data.py
 ```
 
-This creates `data/processed.csv`.
+This produces the processed dataset used by the training pipeline.
 
 ### 3. Train
 
@@ -80,22 +126,22 @@ This creates `data/processed.csv`.
 python train.py --config config.yaml
 ```
 
-Training creates:
+Training creates the model artifacts required by inference:
 
 - `models/classifier.joblib`
 - `models/autoencoder.pt`
 - `models/preprocessor.joblib`
 - `models/metadata.json`
 
-Model artifacts and datasets are intentionally gitignored.
+Datasets and generated model artifacts are intentionally gitignored.
 
-### 4. Run the streaming evaluation
+### 4. Run streaming evaluation
 
 ```bash
 python stream.py --config config.yaml
 ```
 
-Metrics and event logs are written to the configured `logs/` paths.
+The streaming pipeline evaluates drift detection and adaptation behavior and writes metrics/event logs to the configured output paths.
 
 ### 5. Run the API
 
@@ -103,29 +149,47 @@ Metrics and event logs are written to the configured `logs/` paths.
 python -m uvicorn deployment.api.main:app --host 0.0.0.0 --port 8000
 ```
 
-Useful endpoints:
+Main endpoints:
 
-- `GET /`
-- `GET /api/v1/health`
-- `GET /api/v1/ready`
-- `GET /api/v1/drift`
-- `POST /api/v1/predict`
-- `POST /api/v1/predict/batch`
-- `POST /api/v1/predict/stream`
-- `GET /api/v1/predict/stats`
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/` | Service information |
+| GET | `/api/v1/health` | Health check |
+| GET | `/api/v1/ready` | Model readiness |
+| GET | `/api/v1/drift` | Current drift state |
+| POST | `/api/v1/predict` | Single-flow prediction |
+| POST | `/api/v1/predict/batch` | Batch prediction |
+| POST | `/api/v1/predict/stream` | Streaming prediction |
+| GET | `/api/v1/predict/stats` | Prediction statistics |
 
-The dashboard API URL is configurable with `SA_ZD_NIDS_API_URL`.
+The dashboard API URL can be configured with `SA_ZD_NIDS_API_URL`.
+
+### Example API request
+
+The exact feature fields depend on the trained model and dataset configuration. A request therefore follows the model's feature schema rather than assuming a universal network-flow format:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/predict \
+  -H "Content-Type: application/json" \
+  -d '<JSON matching the trained feature schema>'
+```
+
+For a deployed service with API-key authentication enabled, add:
+
+```text
+X-API-Key: <your-api-key>
+```
 
 ### Demo mode
 
-The repository also contains `mock_api.py` for UI-only demonstrations without trained model artifacts:
+For a UI-only demonstration without trained model artifacts:
 
 ```bash
 python -m uvicorn mock_api:app --host 0.0.0.0 --port 8000
 python -m streamlit run deployment/frontend/app.py
 ```
 
-## Docker
+## Docker deployment
 
 After generating model artifacts locally:
 
@@ -133,39 +197,54 @@ After generating model artifacts locally:
 docker compose up --build
 ```
 
-The API is exposed on port 8000 and the dashboard on port 8501. The `models/` directory is mounted read-only into the API container.
+The API is exposed on port `8000` and the dashboard on port `8501`. The `models/` directory is mounted read-only into the API container.
 
-## Testing
+For an internet-facing deployment, place the service behind a TLS-terminating reverse proxy or load balancer and use external authentication, durable distributed rate limiting, secret management, centralized logs/metrics, and alerting.
 
-Run:
+## Testing and CI
+
+Run the local test suite:
 
 ```bash
 python -m pytest -vv
 python -m flake8 --max-line-length=200 --extend-ignore=E203,W503 src tests
 ```
 
-GitHub Actions runs the same install/import/test/lint pipeline on every push to `main` and pull request.
+GitHub Actions runs the project's installation, import checks, tests, and linting on pushes to `main` and pull requests.
 
-## Evaluation
+## Evaluation and research metrics
 
-The repository includes classification and zero-day metrics:
+The repository includes metrics for:
 
-- accuracy
-- macro precision
-- macro recall
-- macro F1
-- unseen-attack detection rate
-- benign false-positive rate
-- drift count and drift latency
-- adaptation time
-- inference latency
+### Classification
+
+- Accuracy
+- Macro precision
+- Macro recall
+- Macro F1
+
+### Zero-day detection
+
+- Unseen-attack detection rate
+- Benign false-positive rate
+
+### Streaming/adaptation
+
+- Drift count
+- Drift latency
+- Adaptation time
+- Inference latency
 - CPU and memory usage
 
-**Important:** benchmark values such as accuracy or zero-day detection rate depend on the exact dataset, preprocessing, split and model configuration. The README does not claim a universal 94%/87% result; reproduce `train.py` and `stream.py` to obtain results for your run.
+### Reproducibility
+
+Reported values depend on the exact dataset, preprocessing configuration, chronological split, selected features, classifier, and random state. The repository therefore does **not** claim a universal accuracy or zero-day detection percentage.
+
+Run the training and streaming pipelines to generate results for the specific experiment.
 
 ## Real-world validation and deployment
 
-### Live traffic capture
+### Live network traffic capture
 
 Optional packet capture provides a real ingestion starting point:
 
@@ -174,34 +253,77 @@ pip install -r requirements-capture.txt
 python scripts/capture_packets.py --interface "Wi-Fi" --seconds 60 --output data/live.pcap
 ```
 
-The capture intentionally stops at PCAP. A flow extractor such as CICFlowMeter or Zeek must convert packets into the exact feature schema used by the trained model; raw packets cannot safely be mapped to CICIDS2017 features by guesswork.
+The capture script produces a PCAP file. It does **not** pretend that raw packets are directly equivalent to CICIDS2017 flow features.
+
+The next step is to use a flow extractor such as **CICFlowMeter** or **Zeek** to convert packets into the exact feature schema expected by the trained model.
+
+On systems that require elevated packet-capture permissions, run the capture tool with the appropriate administrator/root privileges and install the required packet-capture driver.
 
 ### Cross-dataset validation
 
-Validate a trained model on an independent labeled dataset with the same feature schema:
+Validate a trained model on an independent labeled dataset:
 
 ```bash
 python scripts/validate_external_dataset.py --data data/external.csv
 ```
 
-The script reuses the fitted training preprocessor and reports classification and zero-day metrics without fitting on the external dataset. Different feature schemas require an explicit adapter rather than silent column guessing.
+The validation pipeline:
+
+1. Loads the fitted training preprocessor.
+2. Checks that the external dataset contains the required feature columns.
+3. Reuses the trained classifier and autoencoder.
+4. Does not refit the preprocessing pipeline on the external dataset.
+5. Computes classification and zero-day metrics.
+6. Writes the evaluation output to the configured JSON path.
+
+An external dataset with a different feature schema requires an explicit feature adapter. Columns should not be silently guessed or reordered without validation.
 
 ### Production API hardening
 
-The API supports optional `X-API-Key` authentication and a per-process rate limit:
+Optional API protection can be enabled with environment variables:
 
 ```bash
 export SA_ZD_NIDS_API_KEY="change-me"
 export SA_ZD_NIDS_RATE_LIMIT_PER_MINUTE=120
 ```
 
-CORS remains configurable with `SA_ZD_NIDS_ALLOWED_ORIGINS`. For internet-facing deployments, terminate TLS at a reverse proxy/load balancer and use a durable distributed rate limiter, authentication/authorization service, secret manager, logs/metrics backend and alerting. The built-in controls are a safe baseline, not a replacement for a production gateway.
+On Windows PowerShell:
 
-The system's automatic serving adaptation is deliberately conservative and uses high-confidence pseudo-labels. For authoritative labeled model updates, use `adapt.py` with a validated recent labeled dataset.
+```powershell
+$env:SA_ZD_NIDS_API_KEY="change-me"
+$env:SA_ZD_NIDS_RATE_LIMIT_PER_MINUTE="120"
+```
+
+CORS is configurable through `SA_ZD_NIDS_ALLOWED_ORIGINS`.
+
+The built-in controls provide a baseline for a deployed prototype. A production internet-facing service should additionally use TLS, a proper authentication/authorization layer, a distributed rate limiter, a managed secret store, centralized observability, and alerting.
+
+### Adaptation safety
+
+Serving-time adaptation is deliberately conservative and uses high-confidence pseudo-labels. For authoritative model updates, use `adapt.py` with a validated recent labeled dataset rather than treating automatically generated pseudo-labels as ground truth.
+
+## Limitations and responsible claims
+
+SA-ZD-NIDS should be interpreted as a research/portfolio prototype rather than a drop-in enterprise SOC appliance.
+
+The following are intentionally environment-dependent or require additional validation:
+
+- Live packet-to-flow feature extraction.
+- Performance on an independent dataset.
+- Cross-network/generalization performance.
+- Production-scale distributed serving.
+- TLS termination and enterprise identity/authentication.
+- Durable distributed rate limiting.
+- Long-term monitoring, alerting, and model governance.
+- Hardware- and network-specific throughput/latency.
+
+These limitations are explicit so that reported experiments remain reproducible and claims remain defensible.
 
 ## Project status
 
-This is a **working research/portfolio prototype** with explicit live-capture, cross-dataset-validation and API-hardening paths. It is not a claim of a production SOC/NIDS appliance until those environment-specific integrations and infrastructure controls are deployed.
+**Implemented:** core detection pipeline, zero-day anomaly path, ADWIN drift detection, adaptation logic, FastAPI service, Streamlit dashboard, Docker deployment, API hardening, live-capture entry point, external-dataset validation path, tests, linting, and CI configuration.
+
+**Requires environment-specific validation:** actual live traffic capture and flow extraction, independent-dataset experiments, production infrastructure, and measured deployment performance.
 
 ## Citation
 
@@ -214,4 +336,4 @@ This is a **working research/portfolio prototype** with explicit live-capture, c
 }
 ```
 
-Built by Mehul Gupta.
+Built by **Mehul Gupta**.
