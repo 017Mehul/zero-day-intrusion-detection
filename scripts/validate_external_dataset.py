@@ -24,6 +24,11 @@ def main() -> None:
     label_col = cfg["data"].get("label_col", "label")
     if label_col not in df.columns:
         raise ValueError(f"External dataset must contain label column '{label_col}'")
+    required = list(getattr(pre, "raw_feature_names_", []))
+    missing = [name for name in required if name not in df.columns]
+    if missing:
+        preview = ", ".join(missing[:10])
+        raise ValueError(f"External dataset is missing {len(missing)} trained feature columns: {preview}")
     X = pre.transform_for_inference(df, metadata["feature_names"])
     y = df[label_col].astype(str).to_numpy()
     pred, conf = clf.predict(X)
