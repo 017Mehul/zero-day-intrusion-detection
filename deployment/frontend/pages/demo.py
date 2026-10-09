@@ -1,4 +1,5 @@
 """Demo page for SA-ZD-NIDS interactive demonstration."""
+import os
 import streamlit as st
 import requests
 import numpy as np
