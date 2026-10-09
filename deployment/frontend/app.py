@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import json
 
 # Configuration
-API_BASE_URL = "http://localhost:8000/api/v1"
+API_BASE_URL = os.getenv("SA_ZD_NIDS_API_URL", "http://localhost:8000").rstrip("/") + "/api/v1"
 
 st.set_page_config(
     page_title="SA-ZD-NIDS Dashboard",
