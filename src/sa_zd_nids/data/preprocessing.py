@@ -35,6 +35,7 @@ class DataPreprocessor:
         self.feature_cfg = config.get("features", {})
         self.imputer: SimpleImputer | None = None
         self.scaler: StandardScaler | MinMaxScaler | None = None
+        self.raw_feature_names_: list[str] = []
         self.feature_names_: list[str] = []
         self.selected_feature_names_: list[str] = []
 
@@ -78,7 +79,8 @@ class DataPreprocessor:
         y_val = y.iloc[train_n:train_n + val_n].to_numpy()
         y_test = y.iloc[train_n + val_n:].to_numpy()
 
-        self.feature_names_ = list(X_train_df.columns)
+        self.raw_feature_names_ = list(X_train_df.columns)
+        self.feature_names_ = list(self.raw_feature_names_)
         strategy = self.feature_cfg.get("impute_strategy", "median")
         self.imputer = SimpleImputer(strategy=strategy)
         Xt = self.imputer.fit_transform(X_train_df)
@@ -88,7 +90,10 @@ class DataPreprocessor:
         if self.feature_cfg.get("use_mutual_info", False):
             k = min(int(self.feature_cfg.get("mutual_info_k", 40)), Xt.shape[1])
             if k < Xt.shape[1]:
-                scores = mutual_info_classif(Xt, y_train, random_state=self.config.get("project", {}).get("random_state", 42))
+                scores = mutual_info_classif(
+                    Xt, y_train,
+                    random_state=self.config.get("project", {}).get("random_state", 42),
+                )
                 keep = np.argsort(scores)[::-1][:k]
                 keep.sort()
                 self.feature_names_ = [self.feature_names_[i] for i in keep]
@@ -104,7 +109,8 @@ class DataPreprocessor:
         elif scale != "none":
             raise ValueError(f"Unsupported scale: {scale}")
         if self.scaler is not None:
-            Xt = self.scaler.fit_transform(Xt)
+            self.scaler.fit(Xt)
+            Xt = self.scaler.transform(Xt)
             Xv = self.scaler.transform(Xv)
             Xte = self.scaler.transform(Xte)
 
@@ -117,19 +123,25 @@ class DataPreprocessor:
             list(self.selected_feature_names_),
         )
 
-    def transform_for_inference(self, df: pd.DataFrame, feature_names: list[str] | None = None) -> np.ndarray:
+    def transform_for_inference(
+        self, df: pd.DataFrame, feature_names: list[str] | None = None
+    ) -> np.ndarray:
         if self.imputer is None:
             raise RuntimeError("Preprocessor has not been fitted")
         names = feature_names or self.selected_feature_names_ or self.feature_names_
         numeric = df.copy()
         drop = set(self.data_cfg.get("drop_columns", [])) | {
-            self.data_cfg.get("label_col", "label"), self.data_cfg.get("timestamp_col", "timestamp")
+            self.data_cfg.get("label_col", "label"),
+            self.data_cfg.get("timestamp_col", "timestamp"),
         }
         numeric = numeric.drop(columns=[c for c in drop if c in numeric.columns], errors="ignore")
         numeric = numeric.apply(pd.to_numeric, errors="coerce").replace([np.inf, -np.inf], np.nan)
-        # Restore the exact training feature order; missing columns become NaN and are imputed.
-        numeric = numeric.reindex(columns=names)
+        # First reproduce the complete fitted feature space, then select MI features.
+        numeric = numeric.reindex(columns=self.raw_feature_names_)
         X = self.imputer.transform(numeric)
+        if names != self.raw_feature_names_:
+            indices = [self.raw_feature_names_.index(name) for name in names]
+            X = X[:, indices]
         if self.scaler is not None:
             X = self.scaler.transform(X)
         return np.asarray(X, dtype=np.float32)
