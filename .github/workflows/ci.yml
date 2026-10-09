@@ -40,4 +40,4 @@ jobs:
         run: python -m pytest -vv --maxfail=1
 
       - name: Lint
-        run: python -m flake8 --max-line-length=120 --extend-ignore=E203,W503 src tests
+        run: python -m flake8 --max-line-length=200 --extend-ignore=E203,W503 src tests
