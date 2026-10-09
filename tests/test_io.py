@@ -2,12 +2,10 @@
 from __future__ import annotations
 
 import json
-import tempfile
-from pathlib import Path
 
-import numpy as np
+
+
 import pandas as pd
-import pytest
 
 from sa_zd_nids.utils.io import (
     append_jsonl,
