@@ -1,0 +1,17 @@
+.git
+.github
+__pycache__
+*.pyc
+.pytest_cache
+.venv
+venv
+data
+datasets
+logs
+outputs
+results
+experiments
+models
+notebooks
+paper
+*.ipynb
