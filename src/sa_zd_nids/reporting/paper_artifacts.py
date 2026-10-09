@@ -116,4 +116,3 @@ def _f(v: Any) -> str:
 
 def _latex_path(path: str) -> str:
     return path.replace("\\", "/")
-
