@@ -6,6 +6,8 @@ services:
       - "8000:8000"
     environment:
       SA_ZD_NIDS_ALLOWED_ORIGINS: http://localhost:8501,http://127.0.0.1:8501
+      SA_ZD_NIDS_API_KEY: ${SA_ZD_NIDS_API_KEY:-}
+      SA_ZD_NIDS_RATE_LIMIT_PER_MINUTE: ${SA_ZD_NIDS_RATE_LIMIT_PER_MINUTE:-120}
     volumes:
       - ./models:/app/models:ro
       - ./config.yaml:/app/config.yaml:ro
