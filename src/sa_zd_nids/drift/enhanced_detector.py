@@ -128,8 +128,11 @@ class EnhancedDriftDetector:
             return self.num_drifts / max(1, self.values_seen)
         else:
             # Recent drift rate
-            recent_drifts = sum(1 for event in self.drift_history
-                             if event.index >= self.values_seen - window_size)
+            recent_drifts = sum(
+                1
+                for event in self.drift_history
+                if event.index >= self.values_seen - window_size
+            )
             return recent_drifts / max(1, window_size)
 
     def get_warning_rate(self, window_size: Optional[int] = None) -> float:
@@ -137,8 +140,11 @@ class EnhancedDriftDetector:
         if window_size is None:
             return self.num_warnings / max(1, self.values_seen)
         else:
-            recent_warnings = sum(1 for event in self.warning_history
-                                if event.index >= self.values_seen - window_size)
+            recent_warnings = sum(
+                1
+                for event in self.warning_history
+                if event.index >= self.values_seen - window_size
+            )
             return recent_warnings / max(1, window_size)
 
     def reset(self):
